@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OGCRAFTNET Posts</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #181818;
+            color: #fff;
+        }
+
+        nav {
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .logo {
+            font-size: 2rem;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: #fff;
+            font-weight: bold;
+        }
+
+        .tabs {
+            display: flex;
+            justify-content: center;
+            margin: 1rem 0;
+        }
+
+        .tab {
+            background-color: #ffcc00;
+            border: none;
+            border-radius: 50px;
+            padding: 0.5rem 2rem;
+            margin: 0 1rem;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .tab:hover {
+            background-color: #e6b800;
+        }
+
+        .content {
+            margin: 2rem;
+            padding: 2rem;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            backdrop-filter: blur(5px);
+        }
+
+        h2 {
+            color: #ffcc00;
+        }
+
+        .post-list, .community-list {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        input[type="file"], textarea {
+            width: 100%;
+            margin-bottom: 1rem;
+            padding: 0.5rem;
+            border-radius: 10px;
+            border: none;
+            background-color: rgba(255, 255, 255, 0.2);
+            color: #fff;
+        }
+
+        button {
+            padding: 0.7rem 2rem;
+            background-color: #ffcc00;
+            border: none;
+            border-radius: 10px;
+            color: #1a1a1a;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #e6b800;
+        }
+
+        .loading-bar {
+            width: 100%;
+            height: 5px;
+            background-color: #ffcc00;
+            display: none;
+        }
+
+        footer {
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 1rem;
+            text-align: center;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="logo">OGCRAFTNET</div>
+        <div class="nav-links">
+            <a href="#" id="logout" style="display: none;">Logout</a>
+        </div>
+    </nav>
+
+    <div class="tabs">
+        <button class="tab" id="uploadTab">Upload</button>
+        <button class="tab" id="reelsTab">Reels</button>
+        <button class="tab" id="communityTab">Community Posts</button>
+    </div>
+
+    <section class="content" id="loginSection">
+        <h2>Login</h2>
+        <form id="loginForm">
+            <input type="text" id="loginUsername" placeholder="Benutzername" required>
+            <input type="password" id="loginPassword" placeholder="Passwort" required>
+            <button type="submit">Login</button>
+        </form>
+    </section>
+
+    <section class="content" id="uploadSection" style="display: none;">
+        <h2>Upload</h2>
+        <form id="postForm">
+            <input type="file" id="mediaInput" accept="video/mp4,audio/mp3" required>
+            <textarea id="postContent" placeholder="Was möchtest du posten?" required></textarea>
+            <button type="submit">Posten</button>
+        </form>
+        <div id="loadingBar" class="loading-bar" style="display: none;"></div>
+    </section>
+
+    <section class="content" id="reelsSection" style="display: none;">
+        <h2>Reels</h2>
+        <div id="post-list" class="post-list"></div>
+    </section>
+
+    <section class="content" id="communitySection" style="display: none;">
+        <h2>Community Posts</h2>
+        <div id="community-list" class="community-list"></div>
+    </section>
+
+    <footer>
+        <p>&copy; 2024 OGCRAFTNET Posts</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const loginSection = document.getElementById('loginSection');
+            const uploadSection = document.getElementById('uploadSection');
+            const reelsSection = document.getElementById('reelsSection');
+            const communitySection = document.getElementById('communitySection');
+            const loginForm = document.getElementById('loginForm');
+            const postForm = document.getElementById('postForm');
+            const postContent = document.getElementById('postContent');
+            const mediaInput = document.getElementById('mediaInput');
+            const postList = document.getElementById('post-list');
+            const communityList = document.getElementById('community-list');
+            const logoutLink = document.getElementById('logout');
+            const loadingBar = document.getElementById('loadingBar');
+
+            // Posts aus localStorage laden
+            let posts = JSON.parse(localStorage.getItem('posts')) || [];
+            let communityPosts = JSON.parse(localStorage.getItem('communityPosts')) || [];
+
+            // Login
+            loginForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const username = document.getElementById('loginUsername').value;
+                const password = document.getElementById('loginPassword').value;
+
+                localStorage.setItem('username', username);
+                localStorage.setItem('password', password);
+
+                loginSection.style.display = 'none';
+                uploadSection.style.display = 'block';
+                document.getElementById('uploadTab').click();
+                logoutLink.style.display = 'block';
+            });
+
+            // Logout
+            logoutLink.addEventListener('click', () => {
+                localStorage.removeItem('username');
+                localStorage.removeItem('password');
+                loginSection.style.display = 'block';
+                uploadSection.style.display = 'none';
+                logoutLink.style.display = 'none';
+            });
+
+            // Tab-Navigation
+            document.getElementById('uploadTab').addEventListener('click', () => {
+                uploadSection.style.display = 'block';
+                reelsSection.style.display = 'none';
+                communitySection.style.display = 'none';
+            });
+
+            document.getElementById('reelsTab').addEventListener('click', () => {
+                uploadSection.style.display = 'none';
+                reelsSection.style.display = 'block';
+                communitySection.style.display = 'none';
+                displayReels();
+            });
+
+            document.getElementById('communityTab').addEventListener('click', () => {
+                uploadSection.style.display = 'none';
+                reelsSection.style.display = 'none';
+                communitySection.style.display = 'block';
+                displayCommunityPosts();
+            });
+
+            // Handle Posten
+            postForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const content = postContent.value.trim();
+                const mediaFile = mediaInput.files[0];
+                loadingBar.style.display = 'block';
+
+                setTimeout(() => {
+                    const post = { content, mediaURL: null, type: null };
+                    if (mediaFile) {
+                        post.mediaURL = URL.createObjectURL(mediaFile);
+                        post.type = mediaFile.type;
+                    }
+
+                    if (post.type === "video/mp4") {
+                        posts.push(post);
+                        localStorage.setItem('posts', JSON.stringify(posts));
+                    } else if (post.type === "audio/mp3" || content) {
+                        communityPosts.push(post);
+                        localStorage.setItem('communityPosts', JSON.stringify(communityPosts));
+                    }
+
+                    postContent.value = '';
+                    mediaInput.value = '';
+                    loadingBar.style.display = 'none';
+
+                    if (post.type === "video/mp4") {
+                        displayReels();
+                    } else if (post.type === "audio/mp3" || content) {
+                        displayCommunityPosts();
+                    }
+                }, 2000);
+            });
+
+            function displayReels() {
+                postList.innerHTML = '';
+                posts.forEach((post, index) => {
+                    const newPost = document.createElement('div');
+                    newPost.classList.add('post');
+                    newPost.innerHTML = `
+                        <video controls>
+                            <source src="${post.mediaURL}" type="${post.type}">
+                            Dein Browser unterstützt das Video-Tag nicht.
+                        </video>
+                        <p>${post.content}</p>
+                        <button class="delete-button" onclick="deletePost(${index}, 'reels')">Löschen</button>
+                    `;
+                    postList.appendChild(newPost);
+                });
+            }
+
+            function displayCommunityPosts() {
+                communityList.innerHTML = '';
+                communityPosts.forEach((post, index) => {
+                    const newPost = document.createElement('div');
+                    newPost.classList.add('post');
+                    if (post.mediaURL) {
+                        newPost.innerHTML = `
+                            <audio controls>
+                                <source src="${post.mediaURL}" type="${post.type}">
+                                Dein Browser unterstützt das Audio-Tag nicht.
+                            </audio>
+                            <p>${post.content}</p>
+                            <button class="delete-button" onclick="deletePost(${index}, 'community')">Löschen</button>
+                        `;
+                    } else {
+                        newPost.innerHTML = `
+                            <p>${post.content}</p>
+                            <button class="delete-button" onclick="deletePost(${index}, 'community')">Löschen</button>
+                        `;
+                    }
+                    communityList.appendChild(newPost);
+                });
+            }
+
+            window.deletePost = function(index, type) {
+                if (type === 'reels') {
+                    posts.splice(index, 1);
+                    localStorage.setItem('posts', JSON.stringify(posts));
+                    displayReels();
+                } else if (type === 'community') {
+                    communityPosts.splice(index, 1);
+                    localStorage.setItem('communityPosts', JSON.stringify(communityPosts));
+                    displayCommunityPosts();
+                }
+            };
+        });
+    </script>
+</body>
+</html>
